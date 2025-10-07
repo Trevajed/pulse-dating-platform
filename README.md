@@ -13,7 +13,7 @@
 
 - **Development**: https://3000-iju8bxbwiobw4nr6ugbeq-6532622b.e2b.dev
 - **API Health**: https://3000-iju8bxbwiobw4nr6ugbeq-6532622b.e2b.dev/api/health
-- **GitHub**: *[To be deployed to GitHub using existing user repository]*
+- **GitHub**: https://github.com/Trevajed/pulse-dating-platform
 - **Production**: *[To be deployed to Cloudflare Pages]*
 
 ## 📊 Data Architecture
