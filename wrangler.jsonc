@@ -1,34 +1,29 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "webapp",
+  "name": "pulse-dating-mvp",
   "compatibility_date": "2025-10-07",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
-  ]
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
-  // }
+  ],
+  // D1 Database for user profiles, hanky codes, and matches
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pulse-production",
+      "database_id": "will-be-set-after-creation"
+    }
+  ],
+  // KV Storage for sessions and temporary data
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "will-be-set-after-creation",
+      "preview_id": "will-be-set-after-creation"
+    }
+  ],
+  // AI integration for basic matching suggestions
+  "ai": {
+    "binding": "AI"
+  }
 }
