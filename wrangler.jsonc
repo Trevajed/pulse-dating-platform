@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pulse-dating-mvp",
-  "compatibility_date": "2025-10-07",
+  "compatibility_date": "2025-10-22",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
@@ -11,15 +11,15 @@
     {
       "binding": "DB",
       "database_name": "pulse-production",
-      "database_id": "will-be-set-after-creation"
+      "database_id": "fa1bdca2-ec5c-413e-b63f-51b125ce7bb7"
     }
   ],
   // KV Storage for sessions and temporary data
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "will-be-set-after-creation",
-      "preview_id": "will-be-set-after-creation"
+      "id": "a37948da997947df9b373c2acb4be399",
+      "preview_id": "2b0d4abe127c4191be2a7a6531da4208"
     }
   ],
   // AI integration for basic matching suggestions
