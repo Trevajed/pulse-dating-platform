@@ -1,23 +1,82 @@
-// PULSE Digital Hanky Code Dating Platform - Frontend JavaScript
+// PULSE Digital Hanky Code Dating Platform - Modern Interactive Frontend
+// Electric Blue & Purple Theme with Full Accessibility
+
 class PulseApp {
   constructor() {
     this.currentUser = null
     this.authToken = localStorage.getItem('pulse_auth_token')
     this.apiBase = '/api'
+    this.currentPage = 'home'
+    this.hankyCodes = []
     this.init()
   }
 
   async init() {
-    // Check authentication status
+    console.log('🏳️‍🌈 Initializing PULSE App...')
+    
+    // Check authentication
     if (this.authToken) {
       await this.checkAuth()
     }
     
-    this.setupEventListeners()
-    this.loadInitialData()
+    // Set up routing
+    this.setupRouting()
+    
+    // Load initial page
+    this.loadPage(this.getCurrentRoute())
+    
+    console.log('✅ PULSE App initialized!')
   }
 
-  // API Helper Methods
+  // ==================== ROUTING ====================
+  
+  setupRouting() {
+    // Handle back/forward browser buttons
+    window.addEventListener('popstate', (e) => {
+      this.loadPage(this.getCurrentRoute())
+    })
+    
+    // Handle all anchor clicks
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a[data-route]')
+      if (link) {
+        e.preventDefault()
+        const route = link.getAttribute('data-route')
+        this.navigateTo(route)
+      }
+    })
+  }
+
+  getCurrentRoute() {
+    return window.location.hash.slice(1) || 'home'
+  }
+
+  navigateTo(route) {
+    window.location.hash = route
+    this.loadPage(route)
+  }
+
+  async loadPage(route) {
+    console.log(`📄 Loading page: ${route}`)
+    this.currentPage = route
+    
+    const pages = {
+      'home': () => this.renderHomePage(),
+      'codes': () => this.renderCodesPage(),
+      'discover': () => this.renderDiscoverPage(),
+      'matches': () => this.renderMatchesPage(),
+      'messages': () => this.renderMessagesPage(),
+      'profile': () => this.renderProfilePage(),
+      'settings': () => this.renderSettingsPage(),
+      'safety': () => this.renderSafetyPage()
+    }
+    
+    const renderFunction = pages[route] || pages['home']
+    await renderFunction()
+  }
+
+  // ==================== API REQUESTS ====================
+  
   async apiRequest(endpoint, options = {}) {
     const url = `${this.apiBase}${endpoint}`
     const config = {
@@ -48,13 +107,15 @@ class PulseApp {
     }
   }
 
-  // Authentication
+  // ==================== AUTHENTICATION ====================
+  
   async checkAuth() {
     try {
       const response = await this.apiRequest('/auth/me')
       this.currentUser = response.user
-      this.updateUI()
+      console.log('✅ User authenticated:', this.currentUser.displayName)
     } catch (error) {
+      console.log('❌ Authentication failed')
       this.logout()
     }
   }
@@ -70,8 +131,8 @@ class PulseApp {
       this.currentUser = response.user
       localStorage.setItem('pulse_auth_token', this.authToken)
       
-      this.showNotification('Welcome back to PULSE!', 'success')
-      this.updateUI()
+      this.showNotification(`Welcome back, ${this.currentUser.displayName}! 💜`, 'success')
+      this.navigateTo('discover')
       return true
     } catch (error) {
       return false
@@ -89,8 +150,8 @@ class PulseApp {
       this.currentUser = response.user
       localStorage.setItem('pulse_auth_token', this.authToken)
       
-      this.showNotification('Welcome to PULSE! 🏳️‍🌈', 'success')
-      this.updateUI()
+      this.showNotification(`Welcome to PULSE, ${this.currentUser.displayName}! 🏳️‍🌈`, 'success')
+      this.navigateTo('profile')
       return true
     } catch (error) {
       return false
@@ -101,15 +162,18 @@ class PulseApp {
     this.authToken = null
     this.currentUser = null
     localStorage.removeItem('pulse_auth_token')
-    this.updateUI()
-    this.showNotification('Goodbye! Stay safe out there. 💜', 'info')
+    this.showNotification('Logged out. Stay safe! 💙', 'info')
+    this.navigateTo('home')
   }
 
-  // Hanky Code Functions
+  // ==================== HANKY CODES ====================
+  
   async loadHankyCodes(category = 'all') {
     try {
-      const response = await this.apiRequest(`/hanky-codes?category=${category}`)
-      return response.codes
+      const endpoint = category === 'all' ? '/hanky-codes' : `/hanky-codes?category=${category}`
+      const response = await this.apiRequest(endpoint)
+      this.hankyCodes = response.codes || []
+      return this.hankyCodes
     } catch (error) {
       return []
     }
@@ -118,372 +182,545 @@ class PulseApp {
   async searchHankyCodes(query) {
     try {
       const response = await this.apiRequest(`/hanky-codes/search/${encodeURIComponent(query)}`)
-      return response.codes
+      return response.codes || []
     } catch (error) {
       return []
     }
   }
 
-  async getPopularHankyCodes() {
-    try {
-      const response = await this.apiRequest('/hanky-codes/popular/top?limit=6')
-      return response.popularCodes
-    } catch (error) {
-      return []
+  getColorHex(colorName) {
+    const colorMap = {
+      'red': '#DC2626', 'black': '#1F2937', 'blue': '#2563EB', 'yellow': '#EAB308',
+      'grey': '#6B7280', 'gray': '#6B7280', 'orange': '#EA580C', 'white': '#F9FAFB',
+      'brown': '#92400E', 'pink': '#EC4899', 'green': '#16A34A', 'purple': '#9333EA',
+      'light blue': '#60A5FA', 'maroon': '#7C2D12', 'navy': '#1E3A8A', 'teal': '#0D9488'
     }
+    return colorMap[colorName.toLowerCase()] || '#6B7280'
   }
 
-  // Profile Functions
-  async getUserProfile(userId) {
-    try {
-      const response = await this.apiRequest(`/profiles/${userId}`)
-      return response.profile
-    } catch (error) {
-      return null
-    }
-  }
-
-  async updateProfile(profileData) {
-    try {
-      await this.apiRequest('/profiles/me', {
-        method: 'PUT',
-        body: profileData
-      })
-      this.showNotification('Profile updated successfully!', 'success')
-      return true
-    } catch (error) {
-      return false
-    }
-  }
-
-  async addHankyCodeToProfile(hankyCodeId, intensity = 5) {
-    try {
-      await this.apiRequest('/profiles/me/hanky-codes', {
-        method: 'POST',
-        body: { hankyCodeId, intensity }
-      })
-      this.showNotification('Hanky code added to your profile!', 'success')
-      return true
-    } catch (error) {
-      return false
-    }
-  }
-
-  // Matching Functions
-  async discoverMatches(filters = {}) {
-    try {
-      const params = new URLSearchParams(filters).toString()
-      const response = await this.apiRequest(`/matches/discover?${params}`)
-      return response.potentialMatches
-    } catch (error) {
-      return []
-    }
-  }
-
-  async createMatch(targetUserId) {
-    try {
-      const response = await this.apiRequest('/matches/create', {
-        method: 'POST',
-        body: { targetUserId }
-      })
-      this.showNotification('Match created! 💖', 'success')
-      return response.match
-    } catch (error) {
-      return null
-    }
-  }
-
-  async getMyMatches(status = 'all') {
-    try {
-      const response = await this.apiRequest(`/matches/my-matches?status=${status}`)
-      return response.matches
-    } catch (error) {
-      return []
-    }
-  }
-
-  // UI Helper Functions
-  updateUI() {
-    const navButtons = document.querySelector('.nav-buttons')
-    if (!navButtons) return
-
-    if (this.currentUser) {
-      navButtons.innerHTML = `
-        <span class="text-gray-300">Welcome, ${this.currentUser.displayName}</span>
-        <button onclick="pulseApp.showProfile()" class="text-gray-300 hover:text-white px-3 py-2 text-sm">
-          Profile
-        </button>
-        <button onclick="pulseApp.showMatches()" class="text-gray-300 hover:text-white px-3 py-2 text-sm">
-          Matches
-        </button>
-        <button onclick="pulseApp.logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
-          Logout
-        </button>
-      `
-    } else {
-      navButtons.innerHTML = `
-        <button onclick="pulseApp.showHankyCodes()" class="text-gray-300 hover:text-white px-3 py-2 text-sm">
-          Explore Codes
-        </button>
-        <button onclick="pulseApp.showRegister()" class="text-gray-300 hover:text-white px-3 py-2 text-sm">
-          Sign Up
-        </button>
-        <button onclick="pulseApp.showLogin()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm">
-          Sign In
-        </button>
-      `
-    }
-  }
-
-  showNotification(message, type = 'info') {
-    const notification = document.createElement('div')
-    const colors = {
-      success: 'bg-green-600',
-      error: 'bg-red-600', 
-      warning: 'bg-yellow-600',
-      info: 'bg-blue-600'
-    }
+  // ==================== PAGE RENDERS ====================
+  
+  async renderHomePage() {
+    const isLoggedIn = !!this.currentUser
     
-    notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm`
-    notification.innerHTML = `
-      <div class="flex items-center justify-between">
-        <span>${message}</span>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
-          ✕
-        </button>
-      </div>
+    const html = `
+      <a href="#main" class="skip-to-main">Skip to main content</a>
+      
+      <!-- Navigation -->
+      ${this.renderNav()}
+      
+      <!-- Main Content -->
+      <main id="main" class="hero" role="main">
+        <div class="container">
+          <h1 class="hero-title">
+            Connect Through <span class="gradient-text">Cultural Heritage</span>
+          </h1>
+          <p class="hero-subtitle">
+            PULSE revives the authentic hanky code tradition for modern LGBTQ+ dating. 
+            Discover meaningful connections through our community's rich cultural language.
+          </p>
+          <div class="hero-cta">
+            ${isLoggedIn ? `
+              <button class="btn btn-primary btn-lg" onclick="pulseApp.navigateTo('discover')" aria-label="Discover matches">
+                🔍 Discover Matches
+              </button>
+              <button class="btn btn-secondary btn-lg" onclick="pulseApp.navigateTo('codes')" aria-label="Explore hanky codes">
+                🏳️‍🌈 Explore Codes
+              </button>
+            ` : `
+              <button class="btn btn-primary btn-lg" onclick="pulseApp.showRegisterModal()" aria-label="Get started with PULSE">
+                ✨ Get Started
+              </button>
+              <button class="btn btn-secondary btn-lg" onclick="pulseApp.navigateTo('codes')" aria-label="Learn about hanky codes">
+                📚 Learn More
+              </button>
+            `}
+          </div>
+        </div>
+      </main>
+      
+      <!-- Features Section -->
+      <section class="features" aria-labelledby="features-heading">
+        <div class="container">
+          <h2 id="features-heading" class="sr-only">Features</h2>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon" role="img" aria-label="Rainbow flag">🏳️‍🌈</div>
+              <h3 class="feature-title">Cultural Authenticity</h3>
+              <p class="feature-description">
+                22 genuine hanky code meanings rooted in LGBTQ+ leather community history since the 1970s.
+              </p>
+            </div>
+            
+            <div class="feature-card">
+              <div class="feature-icon" role="img" aria-label="Lock">🔒</div>
+              <h3 class="feature-title">Privacy First</h3>
+              <p class="feature-description">
+                Your safety matters. Granular location controls, blocking features, and comprehensive safety tools.
+              </p>
+            </div>
+            
+            <div class="feature-card">
+              <div class="feature-icon" role="img" aria-label="Heart with ribbon">💝</div>
+              <h3 class="feature-title">Meaningful Matches</h3>
+              <p class="feature-description">
+                Connect based on authentic shared interests and complementary hanky codes, not just photos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      ${this.renderFooter()}
     `
     
-    document.body.appendChild(notification)
-    setTimeout(() => notification.remove(), 5000)
+    document.body.innerHTML = html
   }
 
-  // Navigation Functions
-  async showHankyCodes() {
-    const codes = await this.loadHankyCodes()
+  async renderCodesPage() {
+    await this.loadHankyCodes()
     const categories = ['general', 'bdsm', 'fetish', 'romantic', 'casual']
     
-    const content = `
-      <div class="min-h-screen bg-gray-900 text-white">
-        <div class="max-w-6xl mx-auto py-8 px-4">
-          <div class="flex items-center justify-between mb-8">
-            <h1 class="text-3xl font-bold text-purple-400">Hanky Code Reference</h1>
-            <button onclick="window.history.back()" class="text-purple-400 hover:text-purple-300">
+    const html = `
+      <a href="#main" class="skip-to-main">Skip to main content</a>
+      ${this.renderNav()}
+      
+      <main id="main" class="container" style="padding: 3rem 1rem;" role="main">
+        <div style="max-width: 1280px; margin: 0 auto;">
+          <!-- Header -->
+          <div class="flex justify-between items-center mb-xl">
+            <h1 style="font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, var(--pulse-electric-blue) 0%, var(--pulse-purple) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+              🏳️‍🌈 Hanky Code Reference
+            </h1>
+            <a href="#home" data-route="home" class="btn btn-ghost" aria-label="Back to home">
               ← Back
-            </button>
+            </a>
           </div>
           
-          <!-- Search -->
-          <div class="mb-6">
+          <!-- Search Bar -->
+          <div class="mb-xl">
+            <label for="hanky-search" class="form-label">Search Hanky Codes</label>
             <input 
-              type="text" 
+              type="search" 
               id="hanky-search"
-              placeholder="Search by color or meaning..." 
-              class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
-              onkeyup="pulseApp.handleHankySearch(event)"
+              class="form-input"
+              placeholder="Search by color, meaning, or category..."
+              aria-label="Search hanky codes"
+              oninput="pulseApp.handleSearch(event)"
             />
           </div>
           
-          <!-- Category Filter -->
-          <div class="mb-8">
-            <div class="flex flex-wrap gap-2">
-              <button onclick="pulseApp.filterHankyCodes('all')" 
-                      class="filter-btn active bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+          <!-- Category Filters -->
+          <div class="mb-xl" role="group" aria-label="Category filters">
+            <div class="flex gap-md" style="flex-wrap: wrap;">
+              <button 
+                class="btn btn-primary category-filter active" 
+                data-category="all"
+                onclick="pulseApp.filterCategory('all', event)"
+                aria-pressed="true"
+              >
                 All
               </button>
               ${categories.map(cat => `
-                <button onclick="pulseApp.filterHankyCodes('${cat}')" 
-                        class="filter-btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg capitalize">
-                  ${cat}
+                <button 
+                  class="btn btn-secondary category-filter" 
+                  data-category="${cat}"
+                  onclick="pulseApp.filterCategory('${cat}', event)"
+                  aria-pressed="false"
+                >
+                  ${cat.charAt(0).toUpperCase() + cat.slice(1)}
                 </button>
               `).join('')}
             </div>
           </div>
           
           <!-- Codes Grid -->
-          <div id="hanky-codes-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            ${this.renderHankyCodesGrid(codes)}
+          <div id="codes-grid" class="grid grid-cols-3" role="list" aria-label="Hanky codes">
+            ${this.renderHankyCodesGrid(this.hankyCodes)}
           </div>
+          
+          ${this.hankyCodes.length === 0 ? `
+            <div class="text-center" style="padding: 4rem; color: var(--pulse-text-tertiary);">
+              <p style="font-size: 1.5rem; margin-bottom: 1rem;">📭</p>
+              <p>No hanky codes found matching your search.</p>
+            </div>
+          ` : ''}
         </div>
-      </div>
+      </main>
+      
+      ${this.renderFooter()}
     `
     
-    document.body.innerHTML = content
+    document.body.innerHTML = html
   }
 
   renderHankyCodesGrid(codes) {
     return codes.map(code => `
-      <div class="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors">
-        <div class="flex items-center mb-3">
-          <div class="w-8 h-8 rounded-full mr-3 border-2 border-gray-600" 
-               style="background-color: ${this.getColorHex(code.color)}"></div>
-          <div>
-            <h3 class="font-semibold text-white">${code.color}</h3>
-            <span class="text-sm text-gray-400 capitalize">${code.position} • ${code.category}</span>
+      <div class="hanky-code-card" role="listitem" style="--hanky-code-color: ${this.getColorHex(code.color)};">
+        <div class="hanky-code-header">
+          <div 
+            class="hanky-code-color" 
+            style="background-color: ${this.getColorHex(code.color)};"
+            role="img"
+            aria-label="${code.color} hanky"
+          ></div>
+          <div class="hanky-code-info">
+            <h3>${code.color}</h3>
+            <div class="hanky-code-meta">
+              <span class="hanky-code-position">${code.position}</span>
+              <span>•</span>
+              <span class="hanky-code-category">${code.category}</span>
+            </div>
           </div>
         </div>
-        <p class="text-purple-300 font-medium mb-2">${code.meaning}</p>
-        <p class="text-gray-300 text-sm mb-3">${code.description || ''}</p>
-        ${code.cultural_context ? `
-          <p class="text-xs text-gray-400 italic">${code.cultural_context}</p>
+        
+        <p class="hanky-code-meaning">${code.meaning}</p>
+        
+        ${code.description ? `
+          <p class="hanky-code-description">${code.description}</p>
         ` : ''}
+        
+        ${code.cultural_context ? `
+          <div class="hanky-code-cultural">
+            <strong>Cultural Context:</strong> ${code.cultural_context}
+          </div>
+        ` : ''}
+        
         ${this.currentUser ? `
-          <button onclick="pulseApp.addHankyCodeToProfile(${code.id})" 
-                  class="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm">
-            Add to Profile
+          <button 
+            class="btn btn-primary btn-sm mt-md" 
+            onclick="pulseApp.addCodeToProfile(${code.id})"
+            aria-label="Add ${code.color} ${code.position} to your profile"
+          >
+            ➕ Add to Profile
           </button>
         ` : ''}
       </div>
     `).join('')
   }
 
-  getColorHex(colorName) {
-    const colorMap = {
-      'red': '#dc2626', 'black': '#1f2937', 'blue': '#2563eb', 'yellow': '#eab308',
-      'grey': '#6b7280', 'gray': '#6b7280', 'orange': '#ea580c', 'white': '#f9fafb',
-      'brown': '#92400e', 'pink': '#ec4899', 'green': '#16a34a', 'purple': '#9333ea',
-      'light blue': '#60a5fa', 'maroon': '#7c2d12'
-    }
-    return colorMap[colorName.toLowerCase()] || '#6b7280'
-  }
-
-  async handleHankySearch(event) {
-    const query = event.target.value.trim()
-    if (query.length === 0) {
-      this.showHankyCodes()
+  async renderDiscoverPage() {
+    if (!this.currentUser) {
+      this.showNotification('Please sign in to discover matches', 'warning')
+      this.navigateTo('home')
       return
     }
     
-    if (query.length >= 2) {
-      const codes = await this.searchHankyCodes(query)
-      document.getElementById('hanky-codes-grid').innerHTML = this.renderHankyCodesGrid(codes)
-    }
-  }
-
-  async filterHankyCodes(category) {
-    // Update active button
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.classList.remove('active', 'bg-purple-600', 'hover:bg-purple-700')
-      btn.classList.add('bg-gray-700', 'hover:bg-gray-600')
-    })
-    event.target.classList.add('active', 'bg-purple-600', 'hover:bg-purple-700')
+    const html = `
+      <a href="#main" class="skip-to-main">Skip to main content</a>
+      ${this.renderNav()}
+      
+      <main id="main" class="container" style="padding: 3rem 1rem;" role="main">
+        <h1 style="font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, var(--pulse-electric-blue) 0%, var(--pulse-purple) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 2rem;">
+          🔍 Discover Matches
+        </h1>
+        
+        <div style="text-align: center; padding: 4rem; color: var(--pulse-text-secondary);">
+          <div style="font-size: 4rem; margin-bottom: 1rem;">💖</div>
+          <h2 style="color: var(--pulse-text-primary); margin-bottom: 1rem;">Coming Soon!</h2>
+          <p>The matching algorithm is being fine-tuned to find your perfect complement.</p>
+          <p style="margin-top: 1rem;">In the meantime, explore hanky codes and complete your profile!</p>
+          <div class="flex gap-md justify-center mt-xl">
+            <button class="btn btn-primary" onclick="pulseApp.navigateTo('codes')">
+              Explore Codes
+            </button>
+            <button class="btn btn-secondary" onclick="pulseApp.navigateTo('profile')">
+              Edit Profile
+            </button>
+          </div>
+        </div>
+      </main>
+      
+      ${this.renderFooter()}
+    `
     
-    const codes = await this.loadHankyCodes(category)
-    document.getElementById('hanky-codes-grid').innerHTML = this.renderHankyCodesGrid(codes)
+    document.body.innerHTML = html
   }
 
-  showLogin() {
-    const modal = this.createModal('Sign In to PULSE', `
-      <form onsubmit="pulseApp.handleLogin(event)">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
-          <input type="email" name="email" required 
-                 class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+  async renderProfilePage() {
+    if (!this.currentUser) {
+      this.showNotification('Please sign in to view your profile', 'warning')
+      this.navigateTo('home')
+      return
+    }
+    
+    const html = `
+      <a href="#main" class="skip-to-main">Skip to main content</a>
+      ${this.renderNav()}
+      
+      <main id="main" class="container" style="padding: 3rem 1rem;" role="main">
+        <div class="container-sm">
+          <h1 style="font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, var(--pulse-electric-blue) 0%, var(--pulse-purple) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 2rem;">
+            👤 Your Profile
+          </h1>
+          
+          <div style="background: var(--pulse-bg-secondary); border: 1px solid var(--pulse-border-primary); border-radius: var(--radius-xl); padding: 2rem;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+              <div style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--pulse-electric-blue) 0%, var(--pulse-purple) 100%); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+                ${this.currentUser.displayName.charAt(0).toUpperCase()}
+              </div>
+              <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">${this.currentUser.displayName}</h2>
+              <p style="color: var(--pulse-text-tertiary);">@${this.currentUser.username}</p>
+              <p style="color: var(--pulse-text-secondary); margin-top: 0.5rem;">${this.currentUser.pronouns}</p>
+            </div>
+            
+            <div style="text-align: center; padding: 2rem; color: var(--pulse-text-secondary);">
+              <p style="font-size: 3rem; margin-bottom: 1rem;">🎨</p>
+              <p>Profile customization features coming soon!</p>
+              <p style="margin-top: 1rem;">Add your bio, select hanky codes, and set your preferences.</p>
+              <button class="btn btn-primary mt-xl" onclick="pulseApp.navigateTo('codes')">
+                Add Hanky Codes
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
-          <input type="password" name="password" required 
-                 class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
-        </div>
-        <div class="flex gap-4">
-          <button type="submit" 
-                  class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-semibold">
-            Sign In
-          </button>
-          <button type="button" onclick="pulseApp.closeModal()" 
-                  class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg">
-            Cancel
-          </button>
-        </div>
-      </form>
-    `)
-    document.body.appendChild(modal)
+      </main>
+      
+      ${this.renderFooter()}
+    `
+    
+    document.body.innerHTML = html
   }
 
-  showRegister() {
-    const modal = this.createModal('Join PULSE Community', `
-      <form onsubmit="pulseApp.handleRegister(event)">
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
-            <input type="email" name="email" required 
-                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+  // ==================== UI COMPONENTS ====================
+  
+  renderNav() {
+    const isLoggedIn = !!this.currentUser
+    
+    return `
+      <nav class="nav" role="navigation" aria-label="Main navigation">
+        <div class="nav-container">
+          <div class="nav-brand">
+            <a href="#home" data-route="home" class="nav-logo" aria-label="PULSE Home">
+              ⚡ PULSE
+            </a>
+            <span class="nav-tagline">Digital Hanky Code Dating</span>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
-            <input type="text" name="username" required 
-                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+          
+          <div class="nav-links">
+            ${isLoggedIn ? `
+              <a href="#codes" data-route="codes" class="btn btn-ghost">Codes</a>
+              <a href="#discover" data-route="discover" class="btn btn-ghost">Discover</a>
+              <a href="#profile" data-route="profile" class="btn btn-ghost">Profile</a>
+              <button class="btn btn-secondary" onclick="pulseApp.logout()" aria-label="Log out">
+                Logout
+              </button>
+            ` : `
+              <a href="#codes" data-route="codes" class="btn btn-ghost">Explore Codes</a>
+              <button class="btn btn-secondary" onclick="pulseApp.showLoginModal()">
+                Sign In
+              </button>
+              <button class="btn btn-primary" onclick="pulseApp.showRegisterModal()">
+                Get Started
+              </button>
+            `}
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Display Name</label>
-            <input type="text" name="displayName" required 
-                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Age</label>
-            <input type="number" name="age" min="18" max="100" required 
-                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
-          </div>
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Pronouns</label>
-          <select name="pronouns" 
-                  class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
-            <option value="they/them">they/them</option>
-            <option value="he/him">he/him</option>
-            <option value="she/her">she/her</option>
-            <option value="other">other</option>
-          </select>
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
-          <input type="password" name="password" required minlength="6"
-                 class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
-        </div>
-        <div class="flex gap-4">
-          <button type="submit" 
-                  class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-semibold">
-            Join PULSE
-          </button>
-          <button type="button" onclick="pulseApp.closeModal()" 
-                  class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg">
-            Cancel
-          </button>
-        </div>
-      </form>
-    `)
-    document.body.appendChild(modal)
+      </nav>
+    `
   }
 
-  createModal(title, content) {
-    const modal = document.createElement('div')
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-    modal.innerHTML = `
-      <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-        <h2 class="text-xl font-bold text-white mb-4">${title}</h2>
-        ${content}
+  renderFooter() {
+    return `
+      <footer class="footer" role="contentinfo">
+        <div class="footer-content">
+          <p class="footer-text">© 2025 PULSE Digital Hanky Code Dating Platform</p>
+          <p class="footer-text">Built with respect for LGBTQ+ leather community heritage 🏳️‍🌈</p>
+          <div class="footer-links">
+            <a href="#" class="footer-link">Privacy Policy</a>
+            <a href="#" class="footer-link">Terms of Service</a>
+            <a href="#safety" data-route="safety" class="footer-link">Safety Resources</a>
+            <a href="https://github.com/Trevajed/pulse-dating-platform" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+          </div>
+        </div>
+      </footer>
+    `
+  }
+
+  // ==================== MODALS ====================
+  
+  showLoginModal() {
+    const modal = `
+      <div class="modal-overlay" onclick="pulseApp.closeModal(event)" role="dialog" aria-labelledby="login-title" aria-modal="true">
+        <div class="modal" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <h2 id="login-title" class="modal-title">Sign In to PULSE</h2>
+          </div>
+          <div class="modal-body">
+            <form onsubmit="pulseApp.handleLogin(event)" id="login-form">
+              <div class="form-group">
+                <label for="login-email" class="form-label">Email</label>
+                <input 
+                  type="email" 
+                  id="login-email"
+                  name="email" 
+                  class="form-input"
+                  required
+                  autocomplete="email"
+                  placeholder="your@email.com"
+                />
+              </div>
+              
+              <div class="form-group">
+                <label for="login-password" class="form-label">Password</label>
+                <input 
+                  type="password" 
+                  id="login-password"
+                  name="password" 
+                  class="form-input"
+                  required
+                  autocomplete="current-password"
+                  placeholder="••••••••"
+                />
+              </div>
+              
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="pulseApp.closeModal()">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  Sign In
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     `
-    return modal
+    
+    document.body.insertAdjacentHTML('beforeend', modal)
+    document.getElementById('login-email').focus()
   }
 
-  closeModal() {
-    const modal = document.querySelector('.fixed.inset-0')
+  showRegisterModal() {
+    const modal = `
+      <div class="modal-overlay" onclick="pulseApp.closeModal(event)" role="dialog" aria-labelledby="register-title" aria-modal="true">
+        <div class="modal" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <h2 id="register-title" class="modal-title">Join PULSE Community</h2>
+          </div>
+          <div class="modal-body">
+            <form onsubmit="pulseApp.handleRegister(event)" id="register-form">
+              <div class="grid grid-cols-2 gap-md">
+                <div class="form-group">
+                  <label for="reg-email" class="form-label">Email</label>
+                  <input 
+                    type="email" 
+                    id="reg-email"
+                    name="email" 
+                    class="form-input"
+                    required
+                    autocomplete="email"
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label for="reg-username" class="form-label">Username</label>
+                  <input 
+                    type="text" 
+                    id="reg-username"
+                    name="username" 
+                    class="form-input"
+                    required
+                    autocomplete="username"
+                  />
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-md">
+                <div class="form-group">
+                  <label for="reg-displayName" class="form-label">Display Name</label>
+                  <input 
+                    type="text" 
+                    id="reg-displayName"
+                    name="displayName" 
+                    class="form-input"
+                    required
+                  />
+                </div>
+                
+                <div class="form-group">
+                  <label for="reg-age" class="form-label">Age (18+)</label>
+                  <input 
+                    type="number" 
+                    id="reg-age"
+                    name="age" 
+                    class="form-input"
+                    min="18" 
+                    max="100"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="reg-pronouns" class="form-label">Pronouns</label>
+                <select id="reg-pronouns" name="pronouns" class="form-select" required>
+                  <option value="they/them">they/them</option>
+                  <option value="he/him">he/him</option>
+                  <option value="she/her">she/her</option>
+                  <option value="ze/zir">ze/zir</option>
+                  <option value="other">other</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="reg-password" class="form-label">Password</label>
+                <input 
+                  type="password" 
+                  id="reg-password"
+                  name="password" 
+                  class="form-input"
+                  required
+                  minlength="8"
+                  autocomplete="new-password"
+                />
+                <p class="form-hint">At least 8 characters</p>
+              </div>
+              
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="pulseApp.closeModal()">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  Join PULSE
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `
+    
+    document.body.insertAdjacentHTML('beforeend', modal)
+    document.getElementById('reg-email').focus()
+  }
+
+  closeModal(event) {
+    if (event && event.target !== event.currentTarget) return
+    const modal = document.querySelector('.modal-overlay')
     if (modal) modal.remove()
   }
 
+  // ==================== EVENT HANDLERS ====================
+  
   async handleLogin(event) {
     event.preventDefault()
     const formData = new FormData(event.target)
     const email = formData.get('email')
     const password = formData.get('password')
     
+    const btn = event.target.querySelector('button[type="submit"]')
+    btn.disabled = true
+    btn.textContent = 'Signing in...'
+    
     const success = await this.login(email, password)
+    
     if (success) {
       this.closeModal()
-      window.location.href = '/'
+    } else {
+      btn.disabled = false
+      btn.textContent = 'Sign In'
     }
   }
 
@@ -500,52 +737,112 @@ class PulseApp {
       password: formData.get('password')
     }
     
+    const btn = event.target.querySelector('button[type="submit"]')
+    btn.disabled = true
+    btn.textContent = 'Creating account...'
+    
     const success = await this.register(userData)
+    
     if (success) {
       this.closeModal()
-      window.location.href = '/'
+    } else {
+      btn.disabled = false
+      btn.textContent = 'Join PULSE'
     }
   }
 
-  // Load initial data for homepage
-  async loadInitialData() {
-    if (!document.getElementById('hanky-code-preview')) return
+  async handleSearch(event) {
+    const query = event.target.value.trim()
+    
+    if (query.length === 0) {
+      await this.loadHankyCodes()
+    } else if (query.length >= 2) {
+      this.hankyCodes = await this.searchHankyCodes(query)
+    } else {
+      return
+    }
+    
+    const grid = document.getElementById('codes-grid')
+    if (grid) {
+      grid.innerHTML = this.renderHankyCodesGrid(this.hankyCodes)
+    }
+  }
+
+  async filterCategory(category, event) {
+    // Update button states
+    document.querySelectorAll('.category-filter').forEach(btn => {
+      btn.classList.remove('btn-primary', 'active')
+      btn.classList.add('btn-secondary')
+      btn.setAttribute('aria-pressed', 'false')
+    })
+    
+    event.target.classList.remove('btn-secondary')
+    event.target.classList.add('btn-primary', 'active')
+    event.target.setAttribute('aria-pressed', 'true')
+    
+    // Load and render codes
+    this.hankyCodes = await this.loadHankyCodes(category)
+    const grid = document.getElementById('codes-grid')
+    if (grid) {
+      grid.innerHTML = this.renderHankyCodesGrid(this.hankyCodes)
+    }
+  }
+
+  async addCodeToProfile(codeId) {
+    if (!this.currentUser) {
+      this.showNotification('Please sign in to add codes to your profile', 'warning')
+      return
+    }
     
     try {
-      const popularCodes = await this.getPopularHankyCodes()
-      const previewContainer = document.getElementById('hanky-code-preview')
-      
-      previewContainer.innerHTML = popularCodes.map(code => `
-        <div class="text-center">
-          <div class="w-12 h-12 rounded-full mx-auto mb-2 border-2 border-gray-600" 
-               style="background-color: ${this.getColorHex(code.color)}"></div>
-          <p class="text-sm text-white font-medium">${code.color}</p>
-          <p class="text-xs text-gray-400">${code.position}</p>
-        </div>
-      `).join('')
+      await this.apiRequest('/profiles/me/hanky-codes', {
+        method: 'POST',
+        body: { hankyCodeId: codeId, intensity: 5 }
+      })
+      this.showNotification('Hanky code added to your profile! 🎉', 'success')
     } catch (error) {
-      console.log('Could not load popular codes')
+      // Error already shown by apiRequest
     }
   }
 
-  setupEventListeners() {
-    // Add nav buttons container to existing nav
-    const nav = document.querySelector('nav .flex.items-center.justify-between')
-    if (nav && !document.querySelector('.nav-buttons')) {
-      const navButtons = document.createElement('div')
-      navButtons.className = 'nav-buttons flex space-x-4'
-      nav.appendChild(navButtons)
-      this.updateUI()
+  // ==================== NOTIFICATIONS ====================
+  
+  showNotification(message, type = 'info') {
+    const icons = {
+      success: '✅',
+      error: '❌',
+      warning: '⚠️',
+      info: 'ℹ️'
     }
+    
+    const notification = document.createElement('div')
+    notification.className = `notification notification-${type}`
+    notification.setAttribute('role', 'alert')
+    notification.setAttribute('aria-live', 'polite')
+    
+    notification.innerHTML = `
+      <div class="notification-header">
+        <span style="font-weight: 600;">${icons[type]} ${message}</span>
+        <button 
+          class="notification-close" 
+          onclick="this.closest('.notification').remove()"
+          aria-label="Close notification"
+        >
+          ✕
+        </button>
+      </div>
+    `
+    
+    document.body.appendChild(notification)
+    setTimeout(() => notification.remove(), 5000)
   }
 }
 
-// Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize app when DOM is loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    window.pulseApp = new PulseApp()
+  })
+} else {
   window.pulseApp = new PulseApp()
-})
-
-// Export for use in other scripts
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = PulseApp
 }
