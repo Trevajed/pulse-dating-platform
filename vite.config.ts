@@ -12,10 +12,5 @@ export default defineConfig({
       adapter,
       entry: 'src/index.tsx'
     })
-  ],
-  esbuild: {
-    jsxFactory: 'jsx',
-    jsxFragment: 'Fragment',
-    jsxInject: `import { jsx, Fragment } from 'hono/jsx'`
-  }
+  ]
 })
