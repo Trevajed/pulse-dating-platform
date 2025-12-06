@@ -4,8 +4,9 @@
     "module": "ESNext",
     "lib": ["ESNext"],
     "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types", "@types/node"]
   }
 }
