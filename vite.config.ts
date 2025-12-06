@@ -1,11 +1,11 @@
-import pages from '@hono/vite-build/cloudflare-pages'
+import build from '@hono/vite-build/cloudflare-pages'
 import devServer from '@hono/vite-dev-server'
 import adapter from '@hono/vite-dev-server/cloudflare'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [
-    pages({
+    build({
       entry: 'src/index.tsx'
     }),
     devServer({
@@ -13,14 +13,9 @@ export default defineConfig({
       entry: 'src/index.tsx'
     })
   ],
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    minify: true,
-    rollupOptions: {
-      output: {
-        format: 'es'
-      }
-    }
+  esbuild: {
+    jsxFactory: 'jsx',
+    jsxFragment: 'Fragment',
+    jsxInject: `import { jsx, Fragment } from 'hono/jsx'`
   }
 })
